@@ -1,0 +1,94 @@
+name: Tests for eessi_riscv_optarch map
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: ubuntu-24.04
+    steps:
+    - name: checkout
+      uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+
+    - name: Mount EESSI CernVM-FS repositories
+      uses: cvmfs-contrib/github-action-cvmfs@55899ca74cf78ab874bdf47f5a804e47c198743c # v4.0
+      with:
+        cvmfs_config_package: https://github.com/EESSI/filesystem-layer/releases/download/latest/cvmfs-config-eessi_latest_all.deb
+        cvmfs_http_proxy: DIRECT
+        # software.eessi.io: compat + init; dev.eessi.io: RISC-V software stack
+        cvmfs_repositories: software.eessi.io,dev.eessi.io
+
+    - name: Install qemu-user-static (run riscv64 EESSI compilers on x86_64)
+      run: |
+          sudo apt-get update
+          sudo apt-get install -y qemu-user-static
+
+    # Flag acceptance under qemu on x86 — not a full native -c compile.
+    # Pins GCC/14.3.0 + llvm-compilers/20.1.8 (foss/lfoss 2025b); bump when the
+    # RISC-V stack rebuilds / modules move. Overrides below are intentional for CI.
+    - name: Load EESSI RISC-V compilers (pinned GCC 14.3.0, llvm-compilers 20.1.8)
+      run: |
+          set -euo pipefail
+          EESSI_VERSION=2025.06
+          . "/cvmfs/software.eessi.io/versions/${EESSI_VERSION}/compat/linux/$(uname -m)/usr/share/Lmod/init/bash"
+          export MODULEPATH="${GITHUB_WORKSPACE}/init/modules"
+
+          # Deliberate CI overrides: host is x86_64 (compat), modules from RISC-V
+          # repo (software subdir + versioning differ from software.eessi.io).
+          export EESSI_CPU_FAMILY_OVERRIDE=x86_64
+          export EESSI_SOFTWARE_SUBDIR_OVERRIDE=riscv64/generic
+          export EESSI_VERSION_OVERRIDE=2025.06-001
+
+          module load "EESSI/${EESSI_VERSION}"
+          echo "MODULEPATH=${MODULEPATH}"
+
+          # Pinned on purpose (not "latest forever"): foss/2025b → GCC/14.3.0,
+          # lfoss/2025b → llvm-compilers/20.1.8. Expect CI to break on the next
+          # RISC-V stack rebuild when these module versions move — bump here and
+          # EESSI_RISCV_OPTARCH_EXPECT_* below when that happens.
+          module load GCC/14.3.0
+          if module load llvm-compilers/20.1.8 2>/tmp/llvm_mod.err; then
+            :
+          elif module load LLVM/20.1.8 2>>/tmp/llvm_mod.err; then
+            :
+          else
+            echo "Failed to load llvm-compilers/20.1.8 or LLVM/20.1.8" >&2
+            cat /tmp/llvm_mod.err >&2
+            module avail LLVM llvm-compilers Clang 2>&1 | head -80 >&2 || true
+            exit 1
+          fi
+
+          GCC_BIN="$(command -v gcc)"
+          CLANG_BIN="$(command -v clang)"
+          echo "EESSI_RISCV_GCC=${GCC_BIN}"
+          echo "EESSI_RISCV_CLANG=${CLANG_BIN}"
+          file "${GCC_BIN}" "${CLANG_BIN}"
+
+          # RISC-V ELFs need the RISC-V compat root when run under qemu on x86.
+          RISCV_COMPAT="/cvmfs/software.eessi.io/versions/${EESSI_VERSION}/compat/linux/riscv64"
+          echo "QEMU_LD_PREFIX=${RISCV_COMPAT}"
+
+          {
+            echo "EESSI_RISCV_GCC=${GCC_BIN}"
+            echo "EESSI_RISCV_CLANG=${CLANG_BIN}"
+            echo "QEMU_LD_PREFIX=${RISCV_COMPAT}"
+            echo "EESSI_RISCV_OPTARCH_EXPECT_GCC_VERSION=14.3.0"
+            echo "EESSI_RISCV_OPTARCH_EXPECT_CLANG_VERSION=20.1.8"
+          } >> "${GITHUB_ENV}"
+
+          # Smoke: versions + -march/-mtune flag acceptance via -fsyntax-only.
+          # Why not -c: under qemu on x86, PATH often hits the host x86_64 Gentoo
+          # as, which rejects -march=rv64*. Syntax-only never invokes the
+          # assembler. This is a CI-on-qemu limitation — EESSI-extend / optarch
+          # wiring does not (and should not) try to fix the wrong as.
+          "${GCC_BIN}" --version
+          "${CLANG_BIN}" --version
+          "${GCC_BIN}" -fsyntax-only -march=rv64gc -mabi=lp64d -x c /dev/null
+          echo "GCC -fsyntax-only smoke OK"
+
+    - name: Flag acceptance for RISC-V optarch map (EESSI GCC + Clang/LLVM)
+      env:
+        EESSI_RISCV_OPTARCH_REQUIRE_COMPILERS: "1"
+      run: bash ./tests/riscv_optarch/test_eessi_riscv_optarch.sh
