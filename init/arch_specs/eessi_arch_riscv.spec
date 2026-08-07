@@ -8,7 +8,9 @@
 # eessi_archdetect.sh, not a profile spec line.
 #
 # Matching floors ≈ detectable mandatory userspace ISA subset of the official
-# RVA*U64 profiles — not optarch/-march assumptions. Sources:
+# RVA*U64 profiles — not optarch/-march assumptions. Optarch map -march tokens
+# for a software_subdir must be ⊆ these floors after riscv_expand_base (see
+# tests/riscv_optarch map-subseteq-spec). Sources:
 #   RVA20U64: https://docs.riscv.org/reference/rva20-rvi20-rva22/v1.0/rva20.html
 #   RVA22U64: https://docs.riscv.org/reference/rva20-rvi20-rva22/v1.0/rva22.html
 #   RVA23U64: https://docs.riscv.org/reference/rva23/v1.0/rva23-profiles.html
@@ -45,7 +47,7 @@
 "riscv64/rva20u64"	""		"rv64imafdc zicsr zicntr zifencei"
 "riscv64/rva22u64"	""		"rv64imafdc zicsr zicntr zifencei zihpm zihintpause zba zbb zbs zicbom zicbop zicboz zfhmin zkt"
 "riscv64/rva23u64"	""		"rv64imafdcv zicsr zicntr zifencei zihpm zihintpause zihintntl zba zbb zbs zicbom zicbop zicboz zfhmin zkt zicond zimop zcmop zcb zfa zawrs zvfhmin zvbb zvkt"
-"riscv64/sifive/p550"		"0x489"		"rv64imafdch zicsr zifencei zba zbb sscofpmf"	# full measured P550 isa
-"riscv64/sifive/u74-mc"		"0x489"		"rv64imafdc zicntr zicsr zifencei zihpm zca zcd zba zbb"	# full measured VisionFive 2 isa
+"riscv64/sifive/p550"		"0x489"		"rv64imafdch zicsr zifencei zba zbb sscofpmf"	# full measured P550 isa; sscofpmf stripped from optarch -march
+"riscv64/sifive/u74-mc"		"0x489"		"rv64imafdc zicntr zicsr zifencei zihpm zca zcd zba zbb"	# full measured VisionFive 2 isa; optarch = -mcpu=sifive-u74
 "riscv64/spacemit/x60"		"0x710"		"rv64imafdcv sscofpmf sstc svpbmt zicbom zicboz zicbop zihintpause"	# full Armbian-short isa
-"riscv64/spacemit/x60-k6.6"	"0x710"		"rv64imafdcv zicbom zicboz zicntr zicond zicsr zifencei zihintpause zihpm zfh zfhmin zca zcd zba zbb zbc zbs zkt zve32f zve32x zve64d zve64f zve64x zvfh zvfhmin zvkt sscofpmf sstc svinval svnapot svpbmt"	# full k6.6 isa
+"riscv64/spacemit/x60-k6.6"	"0x710"		"rv64imafdcv zicbom zicboz zicntr zicond zicsr zifencei zihintpause zihpm zfh zfhmin zca zcd zba zbb zbc zbs zkt zve32f zve32x zve64d zve64f zve64x zvfh zvfhmin zvkt sscofpmf sstc svinval svnapot svpbmt"	# full k6.6 isa; no zicbop -> not rva22u64
