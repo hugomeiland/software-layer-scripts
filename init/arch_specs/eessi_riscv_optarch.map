@@ -1,0 +1,60 @@
+# Build-time map: EESSI software subdirectory -> EasyBuild optarch for RISC-V
+#
+# Runtime CPU selection uses eessi_archdetect.sh + eessi_arch_riscv.spec.
+# This file is only for compile flags at build time. Detection ISA tokens and
+# map flags are intentionally not always identical (see vendor notes below).
+#
+# Sole production consumer: EESSI-extend (EESSI-extend-easybuild.eb) parses
+# this map in Lua and sets EASYBUILD_OPTARCH when EESSI_SOFTWARE_SUBDIR is
+# riscv64/* and optarch is not already set (same pattern as CUDA/AMD compute
+# capabilities). If the subdir has no map entry, EESSI-extend warns and leaves
+# optarch unset (fall through) rather than failing module load — site installs
+# may override. Map format checks live in tests/riscv_optarch/ (test-only).
+#
+# Format: <software_subdir><TAB_OR_SPACES><optarch>
+#   - GENERIC means EasyBuild's RISC-V generic flags for each compiler
+#     (GCC/Clang/LLVM: -march=rv64gc -mabi=lp64d)
+#   - otherwise EasyBuild multi-compiler syntax:
+#       GCC:<flags>;Clang:<flags>;LLVM:<flags>
+#     see https://docs.easybuild.io/controlling-compiler-optimization-flags/
+#   - Trailing # comments on data lines are stripped by the Lua parser.
+#
+# Notes:
+# - Path names may use profile labels (rva20u64, ...). -march must use explicit
+#   rv64* ISA strings for toolchains that do not yet accept profile names as
+#   -march (e.g. Ubuntu 24.04 gcc-riscv64 13.x / clang 18).
+# - Omit -mtune=generic: unknown to some RISC-V GCC builds.
+# - Omit S-mode / privileged extensions from -march (sscofpmf, sstc, sv*, ...):
+#   they may appear in archdetect specs for matching but are not needed for
+#   userspace codegen and break older Clang.
+# - No SpacemiT -mtune/-mcpu name upstream yet: X60 entries are -march only.
+# - map⊆spec (tests/riscv_optarch): every -march userspace token must be in the
+#   matching archdetect spec. GENERIC and -mcpu-only rows are skipped — there
+#   is no explicit -march to ⊆-check; the named -mcpu defines the ISA surface.
+# - Spec lines must not use parentheses in trailing comments.
+
+riscv64/generic			GENERIC
+riscv64/generic/rva20u64	GCC:-march=rv64gc -mabi=lp64d;Clang:-march=rv64gc -mabi=lp64d;LLVM:-march=rv64gc -mabi=lp64d
+riscv64/generic/rva22u64	GCC:-march=rv64gc_zba_zbb_zbs_zfhmin_zicbom_zicbop_zicboz -mabi=lp64d;Clang:-march=rv64gc_zba_zbb_zbs_zfhmin_zicbom_zicbop_zicboz -mabi=lp64d;LLVM:-march=rv64gc_zba_zbb_zbs_zfhmin_zicbom_zicbop_zicboz -mabi=lp64d
+riscv64/generic/rva23u64	GCC:-march=rv64gcv_zba_zbb_zbs_zfhmin -mabi=lp64d;Clang:-march=rv64gcv_zba_zbb_zbs_zfhmin -mabi=lp64d;LLVM:-march=rv64gcv_zba_zbb_zbs_zfhmin -mabi=lp64d
+
+# p550: userspace -march is a subset of measured cpuinfo (sscofpmf kept in the
+# archdetect spec only). GCC gets -mtune=sifive-7-series; Clang/LLVM have no
+# equivalent tune name here, so -march alone.
+riscv64/sifive/p550		GCC:-march=rv64gc_zba_zbb -mtune=sifive-7-series -mabi=lp64d;Clang:-march=rv64gc_zba_zbb -mabi=lp64d;LLVM:-march=rv64gc_zba_zbb -mabi=lp64d
+
+# u74-mc: archdetect keeps the full measured VisionFive /proc/cpuinfo tokens
+# (zca/zcd/…). Do not freeze that host ISA as -march — it is kernel/board
+# advertisement, not a stable EESSI compile contract, and GCC 14.3 (EESSI
+# stack) accepts -mcpu=sifive-u74 which sets both ISA and U74 scheduling.
+# Same -mcpu for GCC/Clang/LLVM. map⊆spec skips this row (no -march).
+riscv64/sifive/u74-mc		GCC:-mcpu=sifive-u74 -mabi=lp64d;Clang:-mcpu=sifive-u74 -mabi=lp64d;LLVM:-mcpu=sifive-u74 -mabi=lp64d
+
+# SpacemiT X60 is marketed RVA22 but is not a clean full RVA22U64 host (e.g.
+# Zicclsm gap). Neither Banana Pi F3 fixture matches the generic/rva22u64
+# floor: Armbian lacks bitmanip/zfhmin; k6.6 advertises bitmanip/zfh* but not
+# zicbop. Vendor paths exist so those boards get usable trees instead of
+# falling through to a profile they cannot satisfy. -march is a frozen
+# userspace subset of each kernel's measured isa (S-mode stripped); no -mtune.
+riscv64/spacemit/x60		GCC:-march=rv64imafdcv_zicbom_zicboz_zicbop_zihintpause -mabi=lp64d;Clang:-march=rv64imafdcv_zicbom_zicboz_zicbop_zihintpause -mabi=lp64d;LLVM:-march=rv64imafdcv_zicbom_zicboz_zicbop_zihintpause -mabi=lp64d
+riscv64/spacemit/x60-k6.6	GCC:-march=rv64gcv_zba_zbb_zbs_zfh_zfhmin_zicbom_zicboz_zihintpause -mabi=lp64d;Clang:-march=rv64gcv_zba_zbb_zbs_zfh_zfhmin_zicbom_zicboz_zihintpause -mabi=lp64d;LLVM:-march=rv64gcv_zba_zbb_zbs_zfh_zfhmin_zicbom_zicboz_zihintpause -mabi=lp64d
