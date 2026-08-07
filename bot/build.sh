@@ -274,6 +274,8 @@ declare -a INSTALL_SCRIPT_ARGS=()
 if [[ ${EESSI_SOFTWARE_SUBDIR_OVERRIDE} =~ .*/generic$ ]]; then
     INSTALL_SCRIPT_ARGS+=("--generic")
 fi
+# RISC-V -march/-mtune: set via EESSI-extend from eessi_riscv_optarch.map
+# (same pattern as CUDA/AMD compute capabilities), not here in bot/build.sh.
 [[ ! -z ${BUILD_LOGS_DIR} ]] && INSTALL_SCRIPT_ARGS+=("--build-logs-dir" "${BUILD_LOGS_DIR}")
 [[ ! -z ${SHARED_FS_PATH} ]] && INSTALL_SCRIPT_ARGS+=("--shared-fs-path" "${SHARED_FS_PATH}")
 # Skip CUDA installation for RISC-V builds

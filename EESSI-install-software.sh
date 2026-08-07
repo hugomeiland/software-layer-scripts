@@ -151,6 +151,9 @@ else
   )
 fi
 
+# RISC-V EASYBUILD_OPTARCH is set by EESSI-extend from eessi_riscv_optarch.map
+# when that module is loaded (honours a pre-set value, e.g. --generic).
+
 echo ">> Setting up environment..."
 
 # If EESSI_VERSION is not set, source the defaults script to set it

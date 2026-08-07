@@ -228,6 +228,46 @@ if (easybuild_amdgcn_compute_capabilities ~= nil) then
   setenv ("EASYBUILD_AMDGCN_CAPABILITIES", easybuild_amdgcn_compute_capabilities)
 end
 
+-- Set EASYBUILD_OPTARCH for RISC-V CPU targets from the software_subdir map
+-- (same idea as CUDA/AMD capabilities above). Skip if already set (e.g. --generic).
+-- Sole production map parser (Lua); map file is installed with EESSI init scripts.
+-- Map file: init/arch_specs/eessi_riscv_optarch.map
+-- Missing map entry: warn and fall through (leave EASYBUILD_OPTARCH unset) so
+-- site installs can use their own optarch without a hard module-load failure.
+if (os.getenv("EASYBUILD_OPTARCH") == nil or os.getenv("EASYBUILD_OPTARCH") == "") then
+  local eessi_software_subdir = os.getenv("EESSI_SOFTWARE_SUBDIR")
+  if (eessi_software_subdir ~= nil and string.match(eessi_software_subdir, "^riscv64/")) then
+    local map_file = pathJoin(eessi_init_prefix, "arch_specs", "eessi_riscv_optarch.map")
+    local optarch = nil
+    local map_fh = io.open(map_file, "r")
+    if map_fh == nil then
+      LmodError("RISC-V optarch map not found: " .. map_file)
+    end
+    for line in map_fh:lines() do
+      if not string.match(line, "^%s*#") and not string.match(line, "^%s*$") then
+        local key, val = string.match(line, "^(%S+)%s+(.+)$")
+        if key == eessi_software_subdir then
+          -- Drop trailing comments; trim whitespace
+          val = string.match(val, "^([^#]+)") or val
+          val = string.gsub(val, "^%s+", "")
+          val = string.gsub(val, "%s+$", "")
+          optarch = val
+          break
+        end
+      end
+    end
+    map_fh:close()
+    if optarch == nil or optarch == "" then
+      LmodWarning("No RISC-V EASYBUILD_OPTARCH mapping for '" .. eessi_software_subdir .. "' in " .. map_file .. "; leaving EASYBUILD_OPTARCH unset (EasyBuild default / site override)")
+    else
+      setenv("EASYBUILD_OPTARCH", optarch)
+      if (mode() == "load") then
+        LmodMessage("-- RISC-V EASYBUILD_OPTARCH from map for " .. eessi_software_subdir .. ": " .. optarch)
+      end
+    end
+  end
+end
+
 -- Set all related environment variables if we have project or user installations (including extending MODULEPATH)
 if (user_modulepath ~= nil) then
   -- Use a more restrictive umask for this case
