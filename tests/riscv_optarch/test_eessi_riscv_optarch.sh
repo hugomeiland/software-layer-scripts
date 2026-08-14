@@ -79,9 +79,9 @@ eessi_riscv_optarch_compiler_flags() {
 }
 
 SUBDIRS=(
-    riscv64/generic/rva20u64
-    riscv64/generic/rva22u64
-    riscv64/generic/rva23u64
+    riscv64/rva20u64
+    riscv64/rva22u64
+    riscv64/rva23u64
     riscv64/sifive/p550
     riscv64/sifive/u74-mc
     riscv64/spacemit/x60
@@ -138,7 +138,7 @@ else
 fi
 
 # Profile paths use explicit rv64* -march (not profile names); no -mtune=generic
-for sub in riscv64/generic/rva20u64 riscv64/generic/rva22u64 riscv64/generic/rva23u64 \
+for sub in riscv64/rva20u64 riscv64/rva22u64 riscv64/rva23u64 \
            riscv64/spacemit/x60 riscv64/spacemit/x60-k6.6; do
     got=$(eessi_riscv_optarch_for "${sub}")
     if [[ "${got}" == *'-march=rv64'* && "${got}" == *'-mabi=lp64d'* && "${got}" != *'-mtune=generic'* && "${got}" != *'-march=rva'* ]]; then
