@@ -40,6 +40,7 @@
 #   sifive/u74-mc   <- tests/.../sifive/u74-mc/starvision-Ubuntu24.cpuinfo
 #   spacemit/x60    <- tests/.../spacemit/bananaf3-Armbian.cpuinfo
 #   spacemit/x60-k6.6 <- tests/.../spacemit/bananaf3-k6.6.cpuinfo
+#   spacemit/x100   <- tests/.../spacemit/x100/fireflyk3-Ubuntu26.cpuinfo
 
 # Software path in EESSI 	| Vendor ID 	| List of defining CPU features
 "riscv64/rva20u64"	""		"rv64imafdc zicsr zicntr zifencei"
@@ -49,3 +50,4 @@
 "riscv64/sifive/u74-mc"		"0x489"		"rv64imafdc zicntr zicsr zifencei zihpm zca zcd zba zbb"	# full measured VisionFive 2 isa
 "riscv64/spacemit/x60"		"0x710"		"rv64imafdcv sscofpmf sstc svpbmt zicbom zicboz zicbop zihintpause"	# full Armbian-short isa
 "riscv64/spacemit/x60-k6.6"	"0x710"		"rv64imafdcv zicbom zicboz zicntr zicond zicsr zifencei zihintpause zihpm zfh zfhmin zca zcd zba zbb zbc zbs zkt zve32f zve32x zve64d zve64f zve64x zvfh zvfhmin zvkt sscofpmf sstc svinval svnapot svpbmt"	# full k6.6 isa
+"riscv64/spacemit/x100"     	"0x710"         "rv64imafdcvh zicbom zicbop zicboz zicntr zicond zicsr zifencei zihintntl zihintpause zihpm zimop zaamo zalrsc zawrs zfa zfh zfhmin zca zcb zcd zcmop zba zbb zbc zbs zkt zvbb zvbc zve32f zve32x zve64d zve64f zve64x zvfh zvfhmin zvkb zvkg zvkned zvknha zvknhb zvksed zvksh zvkt smaia smstateen ssaia sscofpmf sstc svinval svnapot svpbmt sdtrig"
